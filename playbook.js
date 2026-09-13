@@ -1,0 +1,221 @@
+'use strict';
+
+/**
+ * Malware Investigation Playbook — SOC Analyst edition.
+ * DETECT -> TRIAGE -> ANALYZE -> INVESTIGATE -> CONTAIN -> REMEDIATE -> DOCUMENT
+ */
+
+const STAGES = [
+  {
+    id: 1,
+    key: 'detection',
+    title: 'Malware Alert Detection',
+    phase: 'DETECT',
+    description: 'A SOC analyst identifies the initial alert.',
+    fields: [
+      { key: 'detectionName', label: 'Detection name' },
+      { key: 'hostname', label: 'Hostname' },
+      { key: 'username', label: 'Username' },
+      { key: 'timestamp', label: 'Timestamp' },
+      { key: 'processName', label: 'Process name' },
+      { key: 'filePath', label: 'File path' },
+      { key: 'detectionSeverity', label: 'Detection severity' },
+    ],
+    sourceTypes: [
+      'EDR/XDR malware detection',
+      'Antivirus alerts',
+      'SIEM correlation',
+      'Suspicious process execution',
+      'Malicious file/hash detection',
+      'Suspicious network activity',
+    ],
+  },
+  {
+    id: 2,
+    key: 'hostUser',
+    title: 'Identify the Host & User',
+    phase: 'TRIAGE',
+    description: 'Determine the affected endpoint and user.',
+    fields: [
+      { key: 'hostname', label: 'Hostname' },
+      { key: 'ipAddress', label: 'IP address' },
+      { key: 'username', label: 'Username' },
+      { key: 'operatingSystem', label: 'Operating system' },
+      { key: 'processResponsible', label: 'Process responsible' },
+      { key: 'parentProcess', label: 'Parent process' },
+    ],
+    watchFor: [
+      'Critical servers',
+      'Privileged users',
+      'Multiple affected hosts',
+      'Recently created accounts',
+      'Unusual user activity',
+    ],
+  },
+  {
+    id: 3,
+    key: 'fileAnalysis',
+    title: 'Analyze the File',
+    phase: 'ANALYZE',
+    description: 'Investigate the suspicious executable or file.',
+    fields: [
+      { key: 'hash', label: 'SHA256/MD5 hash' },
+      { key: 'fileName', label: 'File name' },
+      { key: 'fileType', label: 'File type' },
+      { key: 'filePath', label: 'File path' },
+      { key: 'digitalSignature', label: 'Digital signature' },
+      { key: 'fileTimestamps', label: 'File creation/modification time' },
+      { key: 'threatIntel', label: 'VirusTotal / threat intel enrichment' },
+    ],
+    watchFor: [
+      'Known malicious hash',
+      'Unsigned executable',
+      'Suspicious file location',
+      'Recently created file',
+      'Masquerading',
+      'High-risk reputation',
+    ],
+  },
+  {
+    id: 4,
+    key: 'processTree',
+    title: 'Analyze the Process Tree',
+    phase: 'ANALYZE',
+    description: 'Process lineage is critical to understanding execution.',
+    fields: [
+      { key: 'parentProcess', label: 'Parent process' },
+      { key: 'childProcesses', label: 'Child processes' },
+      { key: 'commandLineArgs', label: 'Command-line arguments' },
+      { key: 'shellUsage', label: 'PowerShell, CMD' },
+      { key: 'scriptEngines', label: 'WScript / CScript' },
+      { key: 'lolbins', label: 'LOLBins' },
+      { key: 'injectionIndicators', label: 'Suspicious process injection indicators' },
+    ],
+    watchFor: [
+      'Office application spawning PowerShell',
+      'Browser spawning unusual processes',
+      'PowerShell with encoded commands',
+      'Suspicious parent-child relationships',
+      'Abnormal command-line arguments',
+    ],
+  },
+  {
+    id: 5,
+    key: 'networkActivity',
+    title: 'Investigate Network Activity',
+    phase: 'INVESTIGATE',
+    description: 'Determine external communication by the malware.',
+    fields: [
+      { key: 'destinationIp', label: 'Destination IP' },
+      { key: 'domain', label: 'Domain' },
+      { key: 'dnsRequests', label: 'DNS requests' },
+      { key: 'urls', label: 'URLs' },
+      { key: 'ports', label: 'Ports' },
+      { key: 'protocols', label: 'Protocols' },
+      { key: 'c2Communication', label: 'C2 communication' },
+      { key: 'threatIntel', label: 'Threat intelligence enrichment' },
+    ],
+    watchFor: [
+      'Known malicious IPs/domains',
+      'Newly registered domains',
+      'Beaconed domains',
+      'Beaconing behavior',
+      'Unusual outbound connections',
+      'Suspicious DNS activity',
+    ],
+  },
+  {
+    id: 6,
+    key: 'impact',
+    title: 'Determine the Impact',
+    phase: 'INVESTIGATE',
+    description: 'Understand post-execution activities.',
+    fields: [
+      { key: 'persistence', label: 'Persistence' },
+      { key: 'credentialAccess', label: 'Credential access' },
+      { key: 'privilegeEscalation', label: 'Privilege escalation' },
+      { key: 'lateralMovement', label: 'Lateral movement' },
+      { key: 'dataAccess', label: 'Data access' },
+      { key: 'dataExfiltration', label: 'Data exfiltration' },
+      { key: 'additionalPayloads', label: 'Additional payloads' },
+    ],
+    watchFor: [
+      'Scheduled tasks',
+      'Registry Run keys',
+      'New services',
+      'New accounts',
+      'Credential dumping indicators',
+      'Access to sensitive files',
+      'Other compromised endpoints',
+    ],
+  },
+  {
+    id: 7,
+    key: 'containRemediate',
+    title: 'Contain & Remediate',
+    phase: 'CONTAIN/REMEDIATE',
+    description: 'SOC response actions.',
+    fields: [
+      { key: 'isolateEndpoint', label: 'Isolate endpoint' },
+      { key: 'killProcess', label: 'Kill malicious process' },
+      { key: 'quarantineFile', label: 'Quarantine malicious file' },
+      { key: 'blockIocs', label: 'Block malicious IP/domain/hash' },
+      { key: 'disableAccount', label: 'Disable compromised account' },
+      { key: 'resetCredentials', label: 'Reset credentials' },
+      { key: 'reimage', label: 'Reimage endpoint if necessary' },
+    ],
+    watchFor: [
+      'Additional infected hosts',
+      'Same malware hash elsewhere',
+      'Same C2 domains',
+      'Same C2 infrastructure',
+      'Related IOCs',
+      'Evidence of persistence',
+    ],
+  },
+  {
+    id: 8,
+    key: 'documentHunt',
+    title: 'Document & Hunt',
+    phase: 'DOCUMENT',
+    description: 'Post-incident investigation and knowledge capture.',
+    fields: [
+      { key: 'documentFindings', label: 'Document findings' },
+      { key: 'iocs', label: 'Record IOCs' },
+      { key: 'mitreMapping', label: 'Map activity to MITRE ATT&CK' },
+      { key: 'detectionsCreated', label: 'Detections created' },
+      { key: 'huntForRelatedActivity', label: 'Hunt for related activity' },
+      { key: 'threatIntelUpdated', label: 'Threat intelligence updated' },
+      { key: 'controlsImproved', label: 'Security controls improved' },
+    ],
+  },
+];
+
+const KEY_TOOLS = [
+  'SIEM',
+  'EDR/XDR',
+  'VirusTotal',
+  'Sandbox',
+  'Threat Intelligence',
+  'Network telemetry',
+  'MITRE ATT&CK',
+];
+
+const ANALYST_TIPS = [
+  "Don't investigate the alert in isolation.",
+  'Always analyze the process tree.',
+  'Correlate endpoint and network telemetry.',
+  'Look for persistence.',
+  'Hunt for the same IOCs across the environment.',
+  'Determine the complete attack chain.',
+];
+
+const REMEMBER = [
+  'HOW IT ENTERED',
+  'WHAT EXECUTED',
+  'WHAT IT DID',
+  'WHERE IT MOVED',
+  'HOW TO CONTAIN IT',
+];
+
+module.exports = { STAGES, KEY_TOOLS, ANALYST_TIPS, REMEMBER };
